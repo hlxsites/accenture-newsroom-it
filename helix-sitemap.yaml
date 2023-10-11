@@ -2,7 +2,7 @@ version: 1.1
 auto-generated: false
 sitemaps:
   default:
-    origin: https://tempnewsroom.accenture.com
+    origin: https://tempnewsroom.accenture.it
     source: /query-index.json
     destination: /sitemap.xml
     lastmod: YYYY-MM-DD
