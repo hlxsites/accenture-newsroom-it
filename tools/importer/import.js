@@ -1,12 +1,13 @@
 /* eslint-disable no-console */
 /* eslint-disable no-undef */
-const isCategoryPage = (url) => (
-  url.includes('/industries/')
-  || url.includes('/subjects/')
-  || url.includes('/secteurs-dactivit/')
-  || url.includes('/sujet/')
-  || url.includes('/argomento/')
-);
+const isCategoryPage = (url) => {
+  const { pathname } = new URL(url);
+  if (pathname.endsWith('.htm')) {
+    return false;
+  }
+  const validCategoryPages = ['/industries/', '/secteurs-dactivit/', '/subjects/', '/sujet/', '/argomento/'];
+  return validCategoryPages.some((category) => pathname.includes(category));
+};
 
 function createVideoBlock(main, document) {
   const vidyardImgs = main.querySelectorAll('img[src*="play.vidyard.com"]');
@@ -108,15 +109,15 @@ const createNewsListBlock = (main, document, url) => {
   const cells = [
     ['Newslist'],
   ];
-  const titleEl = main.querySelector('#sec-hero h1');
-  let title = '';
-  if (titleEl) {
-    title = titleEl.textContent.trim();
+  let { pathname } = new URL(url);
+  if (pathname.endsWith('/')) {
+    pathname = pathname.slice(0, -1);
   }
+  const tagName = pathname.split('/').pop();
   if (url.includes('/industries/') || url.includes('/secteurs-dactivit/')) {
-    cells.push(['Industries', title]);
+    cells.push(['Industries', tagName]);
   } else if (url.includes('/subjects/') || url.includes('/sujet/') || url.includes('/argomento/')) {
-    cells.push(['Subjects', title]);
+    cells.push(['Subjects', tagName]);
   }
   const table = WebImporter.DOMUtils.createTable(cells, document);
   categoryContainer.replaceWith(table);
@@ -197,7 +198,7 @@ export default {
     // Remove unnecessary parts of the content
     const main = document.body;
     const results = [];
-
+    let abstractNotFound = '';
     // Remove other stuff that shows up in the page
     const nav = main.querySelector('#block-header');
     if (nav) nav.remove();
@@ -275,6 +276,7 @@ export default {
           nextBrNode.after(br2);
         } else {
           console.log(`${new URL(url).pathname} - abstract not found`);
+          abstractNotFound = 'true';
         }
       } else {
         const secondaryMatchingParagraph = contentDetailsTextNodes.find(
@@ -291,9 +293,11 @@ export default {
             nextBrNode.after(br2);
           } else {
             console.log(`${new URL(url).pathname} - abstract not found`);
+            abstractNotFound = 'true';
           }
         } else {
           console.log(`${new URL(url).pathname} - abstract not found`);
+          abstractNotFound = 'true';
         }
       }
     }
@@ -345,23 +349,34 @@ export default {
 
     if (meta.PublishedDate && url.includes('/news/')) {
       const publishedYear = new Date(meta.PublishedDate).getFullYear().toString().trim();
-      const newPath = new URL(url).pathname.replace('.htm', '').replace('/news/', `/news/${publishedYear}/`);
+      const newPath = decodeURIComponent(new URL(url).pathname).replace('.htm', '').replace('/news/', `/news/${publishedYear}/`);
+      const destinationUrl = WebImporter.FileUtils.sanitizePath(newPath);
       results.push({
         element: main,
         path: newPath,
+        report: {
+          'Destination Url': destinationUrl,
+          'Missing abstract': abstractNotFound,
+        },
       });
     } else {
       // main page import - "element" is provided, i.e. a docx will be created
+      const newPath = decodeURIComponent(new URL(url).pathname).replace('.htm', '');
+      const destinationUrl = WebImporter.FileUtils.sanitizePath(newPath);
       results.push({
         element: main,
-        path: new URL(url).pathname.replace('.htm', ''),
+        path: newPath,
+        report: {
+          'Destination Url': destinationUrl,
+          'Missing abstract': abstractNotFound,
+        },
       });
     }
 
     // find internal pdf links
     main.querySelectorAll('a').forEach((a) => {
       const href = a.getAttribute('href');
-      if (href && href.endsWith('.pdf') && href.includes('newsroom.accenture')) {
+      if (href && href.endsWith('.pdf') && (href.includes('newsroom.accenture') || href.startsWith('/'))) {
         const newUrl = new URL(url);
         const host = newUrl.searchParams.get('host');
         if (href.startsWith('/')) {

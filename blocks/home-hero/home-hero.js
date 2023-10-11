@@ -1,10 +1,10 @@
 import {
-  ANALYTICS_LINK_TYPE_ENGAGEMENT,
   ANALYTICS_LINK_TYPE_NAV_PAGINATE,
   ANALYTICS_MODULE_MARQUEE,
   ANALYTICS_MODULE_MULTIPAGE_NAV,
   ANALYTICS_TEMPLATE_ZONE_HERO,
   ANALYTICS_TEMPLATE_ZONE_BODY,
+  ANALYTICS_LINK_TYPE_HERO_CONTENT,
 } from '../../scripts/constants.js';
 import { annotateElWithAnalyticsTracking } from '../../scripts/scripts.js';
 
@@ -35,7 +35,7 @@ export default async function decorate(block) {
       link.textContent,
       ANALYTICS_MODULE_MARQUEE,
       ANALYTICS_TEMPLATE_ZONE_HERO,
-      ANALYTICS_LINK_TYPE_ENGAGEMENT,
+      ANALYTICS_LINK_TYPE_HERO_CONTENT,
     );
   });
   if (title) {
