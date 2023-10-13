@@ -35,14 +35,20 @@ const MAX_CHARS_IN_CARD_DESCRIPTION = 800;
 function getHumanReadableDate(dateString) {
   if (!dateString) return dateString;
   const date = new Date(parseInt(dateString, 10));
+  const specialCountries = ['pt', 'br', 'sp'];
   // display the date in GMT timezone
   const country = getCountry();
-  return date.toLocaleDateString(getDateLocales(country), {
+  const localedate = date.toLocaleDateString(getDateLocales(country), {
     timeZone: 'GMT',
     year: 'numeric',
     month: 'long',
     day: '2-digit',
   });
+  if (specialCountries.includes(country)) {
+    // de means 'of' in pt/br/sp, replacing with empty string
+    return localedate.replace(/de /g, '');
+  }
+  return localedate;
 }
 
 /**
@@ -435,7 +441,7 @@ export default async function decorate(block) {
     const submitAction = searchHeader.querySelector('input[type="submit"]');
     annotateElWithAnalyticsTracking(
       submitAction,
-      '',
+      'search',
       ANALYTICS_MODULE_SEARCH,
       ANALYTICS_TEMPLATE_ZONE_BODY,
       ANALYTICS_LINK_TYPE_SEARCH_ACTIVITY,
@@ -484,7 +490,7 @@ export default async function decorate(block) {
         <label for="newslist-filter-input">${pFilterNews}
           <span class="newslist-filter-arrow"></span>
         </label>
-        <input type="text" id="newslist-filter-input" title="${pDateRange}" name="date" value="${pDateRange}" size="40" maxlength="60" disabled>
+        <input type="text" id="newslist-filter-input" title="${pDateRange}" name="date" value="" size="40" placeholder="${pDateRange}" maxlength="60" disabled>
         <input type="submit" value="" disabled>
       </form>
     `;
@@ -519,7 +525,7 @@ export default async function decorate(block) {
         <label for="newslist-filter-input">${pFilterNews}
           <span class="newslist-filter-arrow"></span>
         </label>
-        <input type="text" id="newslist-filter-input" title="${pDateRange}" name="date" value="${pDateRange}" size="40" maxlength="60" disabled>
+        <input type="text" id="newslist-filter-input" title="${pDateRange}" name="date" value="" placeholder="${pDateRange}" size="40" maxlength="60" disabled>
         <input type="submit" value="" disabled>
       </form>
     `;

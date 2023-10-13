@@ -56,7 +56,7 @@ const createMetadataBlock = (main, document, url) => {
     if (t) {
       meta.Title = t.textContent.trim();
     }
-    const subtitle = document.querySelector('#sec-hero h1+.row');
+    const subtitle = document.querySelector('#sec-hero h1+.row,#sec-hero h1+.sec-desc');
     if (subtitle) {
       meta.Subtitle = subtitle.textContent.trim();
     }

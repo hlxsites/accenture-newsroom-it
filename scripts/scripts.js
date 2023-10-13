@@ -97,19 +97,19 @@ export function getLanguage(country) {
 }
 
 export function getDateLocales(country) {
-  const countryToLanguageMapping = {
+  const countryDateLocales = {
     us: 'en-US',
-    uk: 'en-US',
+    gb: 'en-US',
     de: 'de-DE',
     fr: 'fr-FR',
     it: 'it-IT',
-    es: 'es-ES',
+    sp: 'es-ES',
     sg: 'en-US',
     pt: 'pt-PT',
     jp: 'ja-JP',
     br: 'pt-BR',
   };
-  return countryToLanguageMapping[country] || 'en-US';
+  return countryDateLocales[country] || 'en-US';
 }
 
 export function getPlaceholder(key, placeholders) {
