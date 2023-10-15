@@ -426,6 +426,9 @@ export default {
         } catch (error) {
           console.warn(`Unable to create PDF link for ${href}: ${error.message}`);
         }
+      } else if (href.endsWith('.tekdownload')) {
+        // link at the bottom for IT pages
+        a.remove();
       }
     });
 
