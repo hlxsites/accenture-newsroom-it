@@ -32,22 +32,16 @@ async function generatePDF(pageName) {
   heroContainer.remove();
   asideContainer.remove();
 
-  const { jsPDF } = window.jspdf;
-  // eslint-disable-next-line new-cap
-  const doc = new jsPDF();
-  await doc.html(main, {
-    // eslint-disable-next-line no-shadow
-    callback(doc) {
-      // Save the PDF
-      doc.save(`${pageName}`);
-    },
-    margin: [10, 10, 10, 10],
-    autoPaging: 'text',
-    x: 0,
-    y: 0,
-    width: 190, // target width in the PDF document
-    windowWidth: 900, // window width in CSS pixels
-  });
+  const { html2pdf } = window;
+  const opt = {
+    margin: [30, 30, 30, 30],
+    filename: `${pageName}.pdf`,
+    image: { type: 'jpeg', quality: 1 },
+    html2canvas: { scale: 2, letterRendering: true },
+    jsPDF: { unit: 'pt', format: 'letter', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+  };
+  html2pdf().set(opt).from(main).save();
 }
 
 /**
@@ -84,6 +78,9 @@ function getPrefixForTags(siteName, category) {
   if (siteName === 'fr') {
     categoryMapping = category === 'industries' ? 'secteurs-dactivit' : 'sujet';
   }
+  if (siteName === 'it') {
+    categoryMapping = category === 'subjects' ? 'argomento' : 'industries';
+  }
   return `${siteNamePrefixMapping[siteName] || ''}/${categoryMapping}`;
 }
 
@@ -91,6 +88,7 @@ export default async function decorate(block) {
   block.innerText = '';
   const pageUrl = window.location.href;
   const pageTitle = getMetadata('og:title');
+  const pageName = pageUrl.split('/').pop();
   const placeholders = await fetchPlaceholders();
   const pShare = getPlaceholder('share', placeholders);
   const pDownloadPressRelease = getPlaceholder('downloadPressRelease', placeholders);
@@ -174,8 +172,7 @@ export default async function decorate(block) {
   // PDF Download button
   const addPDF = getMetadata('pdf');
   if (addPDF && (addPDF === 'true')) {
-    const pageName = pageTitle.replace(/[^a-z0-9]/gi, '-');
-    const pdfButton = createEl('a', { class: 'pdf-button button', title: ' Convert to PDF', 'data-analytics-download-fileName': `${pageName}.tekpdf` }, pDownloadPressRelease, share);
+    const pdfButton = createEl('a', { class: 'pdf-button button', title: ' Convert to PDF', 'data-analytics-download-fileName': `${pageName}` }, pDownloadPressRelease, share);
     annotateElWithAnalyticsTracking(
       pdfButton,
       pdfButton.textContent,
@@ -185,10 +182,13 @@ export default async function decorate(block) {
     );
 
     pdfButton.addEventListener('click', async () => {
-      // Add the js2pdf script
-      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-      await loadScript('/scripts/html2canvas.min.js');
-      if (window.jspdf) {
+      // Add the html2pdf script
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js', {
+        integrity: 'sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==',
+        crossorigin: 'anonymous',
+        referrerpolicy: 'no-referrer',
+      });
+      if (window.html2pdf) {
         await generatePDF(pageName);
       }
     });
