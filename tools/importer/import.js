@@ -34,6 +34,17 @@ function createVideoBlock(main, document) {
     const videoBlock = WebImporter.DOMUtils.createTable(videoCells, document);
     youtubeEmbed.replaceWith(videoBlock);
   });
+  // looking glass 3d rendering
+  const glassEmbeds = main.querySelectorAll('iframe[src*="blocks.glass"]');
+  glassEmbeds.forEach((glassEmbed) => {
+    const glassUrl = glassEmbed.src;
+    const blockCells = [
+      ['Embed'],
+      [glassUrl],
+    ];
+    const embedBlock = WebImporter.DOMUtils.createTable(blockCells, document);
+    glassEmbed.replaceWith(embedBlock);
+  });
 }
 
 const createMetadataBlock = (main, document, url) => {
@@ -253,6 +264,23 @@ export default {
     const footer = main.querySelector('#block-footer');
     if (footer) footer.remove();
 
+    // Handle Tables from the source content
+    const tables = main.querySelectorAll('table');
+    if (tables && tables.length > 0) {
+      tables.forEach((table) => {
+        const videoRegex = /.*https:\/\/play.vidyard.com.*|.*youtube.*|.*blocks.glass.*/;
+        const isVideo = videoRegex.test(table.outerHTML);
+        if (isVideo) return;
+        const cells = [
+          ['Table'],
+          [table.outerHTML],
+        ];
+        const newTable = WebImporter.DOMUtils.createTable(cells, document);
+        table.after(newTable);
+        table.remove();
+      });
+    }
+
     // Get right nav
     const rightNav = main.querySelector('#tek-wrap-rightrail');
 
@@ -289,11 +317,7 @@ export default {
         console.log('found primary match!');
         const nextBrNode = findNextBrOrpNode(primaryMatchingParagraph);
         if (nextBrNode) {
-          const br1 = document.createElement('br');
-          const br2 = document.createElement('br');
-          nextBrNode.after(br1);
           nextBrNode.after('---');
-          nextBrNode.after(br2);
         } else {
           console.log(`${new URL(url).pathname} - abstract not found`);
           abstractNotFound = 'true';
@@ -306,11 +330,7 @@ export default {
           console.log('found secondary match!');
           const nextBrNode = findNextBrOrpNode(secondaryMatchingParagraph);
           if (nextBrNode) {
-            const br1 = document.createElement('br');
-            const br2 = document.createElement('br');
-            nextBrNode.after(br1);
             nextBrNode.after('---');
-            nextBrNode.after(br2);
           } else {
             console.log(`${new URL(url).pathname} - abstract not found`);
             abstractNotFound = 'true';
@@ -327,23 +347,6 @@ export default {
     if (authors && authors.length > 0) {
       authors.forEach((author) => {
         main.append(author);
-      });
-    }
-
-    // Handle Tables from the source content
-    const tables = main.querySelectorAll('table');
-    if (tables && tables.length > 0) {
-      tables.forEach((table) => {
-        const videoRegex = /.*https:\/\/play.vidyard.com.*|.*youtube.*/;
-        const isVideo = videoRegex.test(table.outerHTML);
-        if (isVideo) return;
-        const cells = [
-          ['Table'],
-          [table.outerHTML],
-        ];
-        const newTable = WebImporter.DOMUtils.createTable(cells, document);
-        table.after(newTable);
-        table.remove();
       });
     }
 
@@ -383,8 +386,14 @@ export default {
         },
       });
     } else {
+      const currentPath = new URL(url).pathname;
       // main page import - "element" is provided, i.e. a docx will be created
-      const newPath = decodeURIComponent(new URL(url).pathname).replace('.htm', '');
+      let newPath = decodeURIComponent(currentPath).replace('.htm', '');
+      if (currentPath.startsWith('/photo_display.cfm')) {
+        const urlParams = new URLSearchParams(new URL(url).search);
+        const assetId = urlParams.get('photo_id');
+        newPath = `/photo_display/${assetId}`;
+      }
       const destinationUrl = WebImporter.FileUtils.sanitizePath(newPath);
       results.push({
         element: main,
@@ -426,9 +435,14 @@ export default {
         } catch (error) {
           console.warn(`Unable to create PDF link for ${href}: ${error.message}`);
         }
-      } else if (href.endsWith('.tekdownload')) {
+      } else if (href && href.endsWith('.tekdownload')) {
         // link at the bottom for IT pages
         a.remove();
+      } else if (href && href.startsWith('/photo_display.cfm') && href.endsWith('download=true')) {
+        const urlParams = new URLSearchParams(new URL(url).search);
+        const assetId = urlParams.get('photo_id');
+        const newPath = `/photo_display/${assetId}`;
+        a.setAttribute('href', `https://main--accenture-newsroom--hlxsites.hlx.page${newPath}`.replace(/\/\//g, '/'));
       }
     });
 

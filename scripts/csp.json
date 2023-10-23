@@ -13,7 +13,8 @@
       "www.youtube.com",
       "dpm.demdex.net",
       "cdnjs.cloudflare.com",
-      "play.vidyard.com"
+      "play.vidyard.com",
+      "api.demandbase.com"
   ],
   "connect-src": [
       "'self'",
@@ -45,7 +46,8 @@
     "*.accenture.com",
     "www.youtube.com",
     "www.youtube-nocookie.com/",
-    "*.demdex.net"
+    "*.demdex.net",
+    "blocks.glass"
   ],
   "style-src": [
     "'self'",

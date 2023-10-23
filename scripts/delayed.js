@@ -2,6 +2,7 @@
 import { sampleRUM, loadScript, getMetadata } from './lib-franklin.js';
 // eslint-disable-next-line import/no-cycle
 import { getCountry, getLanguage } from './scripts.js';
+import { ANALYTICS_LINK_TYPE_CTA, ANALYTICS_TEMPLATE_ZONE_CONSENT_MANAGER } from './constants.js';
 
 const ONETRUST_SDK = 'https://cdn.cookielaw.org/scripttemplates/otSDKStub.js';
 
@@ -10,6 +11,14 @@ function getCookie(name) {
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(';').shift();
   return '';
+}
+
+function isProd() {
+  const { host } = window.location;
+  if (host.startsWith('newsroom.accenture')) {
+    return true;
+  }
+  return false;
 }
 
 function addOneTrustCookieButton(text) {
@@ -31,6 +40,27 @@ function addOneTrustCookieButton(text) {
 
     optanonWrapper.appendChild(optanonButton);
     document.body.appendChild(optanonWrapper);
+  }
+}
+
+function addOneTrustDataAttrs() {
+  const oneTrustSDK = document.querySelector('div#onetrust-consent-sdk');
+  if (oneTrustSDK) {
+    const buttons = oneTrustSDK.querySelectorAll('button');
+    const tabs = oneTrustSDK.querySelectorAll('ul.ot-cat-grp li');
+    buttons.forEach((button) => {
+      button.setAttribute('data-analytics-link-name', button.textContent || '');
+      button.setAttribute('data-analytics-link-type', ANALYTICS_LINK_TYPE_CTA);
+      button.setAttribute('data-analytics-module-name', ANALYTICS_TEMPLATE_ZONE_CONSENT_MANAGER);
+      button.setAttribute('data-analytics-template-zone', ANALYTICS_TEMPLATE_ZONE_CONSENT_MANAGER);
+    });
+    tabs.forEach((tab) => {
+      const linkName = tab.querySelector('h3')?.textContent || '';
+      tab.setAttribute('data-analytics-link-name', linkName);
+      tab.setAttribute('data-analytics-link-type', ANALYTICS_LINK_TYPE_CTA);
+      tab.setAttribute('data-analytics-module-name', ANALYTICS_TEMPLATE_ZONE_CONSENT_MANAGER);
+      tab.setAttribute('data-analytics-template-zone', ANALYTICS_TEMPLATE_ZONE_CONSENT_MANAGER);
+    });
   }
 }
 
@@ -63,21 +93,36 @@ function attachOneTrustCookieListeners() {
   }
 }
 
-function addCookieOneTrust() {
-  const cookieScript = document.createElement('script');
-  cookieScript.src = ONETRUST_SDK;
-  cookieScript.type = 'text/javascript';
-  cookieScript.charset = 'UTF-8';
-  cookieScript.setAttribute('data-domain-script', 'b6b6947b-e233-46b5-9b4e-ccc2cd860869');
-  document.head.appendChild(cookieScript);
+async function addCookieOneTrust() {
+  let otId;
+  if (isProd()) {
+    otId = 'b6b6947b-e233-46b5-9b4e-ccc2cd860869';
+  } else {
+    otId = 'b6b6947b-e233-46b5-9b4e-ccc2cd860869-test';
+  }
+
+  await loadScript(ONETRUST_SDK, {
+    type: 'text/javascript',
+    charset: 'UTF-8',
+    'data-domain-script': `${otId}`,
+  });
   attachOneTrustCookieListeners();
+  window.OptanonWrapper = () => {
+    addOneTrustDataAttrs();
+  };
 }
 
 async function addMartechStack() {
   // load jquery
   await loadScript('/scripts/jquery-3.5.1.min.js', { async: 'false' });
   // Add Adobe Analytics
-  await loadScript('https://assets.adobedtm.com/55621ea95d50/e22056dd1d90/launch-EN379c80f941604b408953a2df1776d1c6-staging.min.js');
+  if (isProd()) {
+    await loadScript('https://assets.adobedtm.com/55621ea95d50/e22056dd1d90/launch-EN664f8f34ad5946f8a0f7914005f717cf.min.js');
+  } else {
+    await loadScript('https://assets.adobedtm.com/55621ea95d50/e22056dd1d90/launch-EN379c80f941604b408953a2df1776d1c6-staging.min.js');
+  }
+  // Add Demandbase tag
+  loadScript('//api.demandbase.com/api/v2/ip.json?key=126cd7070cfc0c3ab3e70e653cde6887&callback=Dmdbase_CDC.callback', { async: 'true' });
 }
 
 function getPageInstanceId(template, path, countryLanguage = '') {
