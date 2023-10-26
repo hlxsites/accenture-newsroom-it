@@ -288,6 +288,7 @@
 }
 
 .newslist .newslist-container .newslist-header-container label {
+  display: block;
   font-family: var(--graphik-semibold);
   padding-left: 15px;
   margin-bottom: 5px;
@@ -381,6 +382,7 @@
 
   .newslist .newslist-container .newslist-header-container form {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
   }
 
