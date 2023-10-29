@@ -188,6 +188,11 @@ const collectTextNodes = (node, list) => {
 };
 
 const findNextBrOrpNode = (node) => {
+  // if the node's parent is div or p, just reutn the parent
+  if (node.parentElement.nodeName === 'P' || node.parentElement.nodeName === 'DIV') {
+    return node.parentElement;
+  }
+
   let currentNode = node.parentElement.nextSibling;
   if (node.parentElement.nodeName === 'DIV') currentNode = node.nextSibling;
   if (node.parentElement.nodeName === 'H1') currentNode = node.parentElement.parentElement;
@@ -197,7 +202,26 @@ const findNextBrOrpNode = (node) => {
   if (node.parentElement.nodeName === 'SPAN' && node.parentElement.parentElement.nodeName === 'STRONG' && node.parentElement.parentElement.parentElement.nodeName === 'SPAN' && node.parentElement.parentElement.parentElement.parentElement.nodeName === 'P') currentNode = node.parentElement.parentElement.parentElement.parentElement;
   if (node.parentElement.nodeName === 'SPAN' && node.parentElement.parentElement.nodeName === 'B' && node.parentElement.parentElement.parentElement.nodeName === 'P') currentNode = node.parentElement.parentElement.parentElement.nextSibling;
   if (node.parentElement.nodeName === 'STRONG' && node.parentElement.parentElement.nodeName === 'SPAN') currentNode = node.parentElement.parentElement.parentElement;
+  if (node.parentElement.nodeName === 'STRONG' && currentNode && currentNode.nodeName === 'SPAN') currentNode = node.parentElement.parentElement;
+  if (node.parentElement.nodeName === 'STRONG' && node.parentElement.parentElement.nodeName === 'P') currentNode = node.parentElement.parentElement;
+  if (node.parentElement.nodeName === 'SPAN' && node.parentElement.parentElement.nodeName === 'P') currentNode = node.parentElement.parentElement;
   if (node.parentElement.nodeName === 'I' && node.parentElement.parentElement.nodeName === 'DIV') currentNode = node.parentElement.parentElement.nextSibling;
+
+  // if the currentNode is text node, find the next sibling that's not text node
+  // If not found, set the currentNode to parent's next sibling
+  if (currentNode && (currentNode.nodeType === Node.TEXT_NODE || currentNode.nodeName === 'A' || currentNode.nodeName === 'SPAN')) {
+    while (currentNode && (currentNode.nodeType === Node.TEXT_NODE || currentNode.nodeName === 'A' || currentNode.nodeName === 'SPAN')) {
+      currentNode = currentNode.nextSibling;
+    }
+
+    if (currentNode === null && node.parentElement.nodeName === 'DIV') {
+      return node.parentElement;
+    }
+
+    if (currentNode === null && node.parentElement.parentElement.nodeName === 'DIV') {
+      return node.parentElement.parentElement;
+    }
+  }
 
   // Check siblings first
   while (currentNode !== null) {
@@ -317,7 +341,9 @@ export default {
         console.log('found primary match!');
         const nextBrNode = findNextBrOrpNode(primaryMatchingParagraph);
         if (nextBrNode) {
-          nextBrNode.after('---');
+          const abstractDelim = document.createElement('p');
+          abstractDelim.textContent = '---';
+          nextBrNode.insertAdjacentElement('afterend', abstractDelim);
         } else {
           console.log(`${new URL(url).pathname} - abstract not found`);
           abstractNotFound = 'true';
@@ -330,7 +356,9 @@ export default {
           console.log('found secondary match!');
           const nextBrNode = findNextBrOrpNode(secondaryMatchingParagraph);
           if (nextBrNode) {
-            nextBrNode.after('---');
+            const abstractDelim = document.createElement('p');
+            abstractDelim.textContent = '---';
+            nextBrNode.insertAdjacentElement('afterend', abstractDelim);
           } else {
             console.log(`${new URL(url).pathname} - abstract not found`);
             abstractNotFound = 'true';
@@ -408,7 +436,7 @@ export default {
     // find internal pdf links
     main.querySelectorAll('a').forEach((a) => {
       const href = a.getAttribute('href');
-      if (href && href.endsWith('.pdf') && (href.includes('newsroom.accenture') || href.startsWith('/'))) {
+      if (href && (href.endsWith('.pdf') || href.endsWith('.tekdownload')) && (href.includes('newsroom.accenture') || href.startsWith('/'))) {
         const newUrl = new URL(url);
         const host = newUrl.searchParams.get('host');
         if (href.startsWith('/')) {
@@ -421,7 +449,8 @@ export default {
           u.searchParams.append('host', u.origin);
           // no "element", the "from" property is provided instead
           // importer will download the "from" resource as "path"
-          const newPath = WebImporter.FileUtils.sanitizePath(u.pathname.replace(/\/\//g, '/'));
+          let newPath = WebImporter.FileUtils.sanitizePath(u.pathname.replace(/\/\//g, '/').replace('.tekdownload', '.pdf'));
+          if (href.endsWith('.tekdownload')) newPath = newPath.replace('/news/', '/content/');
           results.push({
             path: newPath,
             from: `http://localhost:3001${u.pathname.replace(/\/\//g, '/')}${u.search}`,
@@ -432,12 +461,13 @@ export default {
           // you will need to replace "main--repo--owner" by your project setup
           const newHref = new URL(newPath, 'https://main--accenture-newsroom--hlxsites.hlx.page').toString();
           a.setAttribute('href', newHref);
+          if (href.endsWith('.tekdownload')) {
+            const linkContent = a.textContent;
+            a.innerHTML = `<b>${linkContent}</b>`;
+          }
         } catch (error) {
           console.warn(`Unable to create PDF link for ${href}: ${error.message}`);
         }
-      } else if (href && href.endsWith('.tekdownload')) {
-        // link at the bottom for IT pages
-        a.remove();
       } else if (href && href.startsWith('/photo_display.cfm') && href.endsWith('download=true')) {
         const urlParams = new URLSearchParams(new URL(url).search);
         const assetId = urlParams.get('photo_id');

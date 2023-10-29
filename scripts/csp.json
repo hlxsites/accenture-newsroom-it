@@ -47,7 +47,8 @@
     "www.youtube.com",
     "www.youtube-nocookie.com/",
     "*.demdex.net",
-    "blocks.glass"
+    "blocks.glass",
+    "*.slideshare.net"
   ],
   "style-src": [
     "'self'",
