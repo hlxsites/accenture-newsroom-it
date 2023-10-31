@@ -1,0 +1,145 @@
+/* stylelint-disable no-descending-specificity */
+
+.table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.table table thead tr {
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+}
+
+.table table tbody tr {
+  border-bottom: 1px solid;
+}
+
+
+.table table th, .table table td {
+  padding: 8px 16px;
+  text-align: left;
+}
+
+.table a.button {
+  font-family: var(--body-font-family);
+  text-transform: none;
+  font-size: var(--body-font-size-xs);
+  font-weight: 600;
+}
+
+.table p {
+  margin: 0;
+}
+
+.table-wrapper+.table-wrapper {
+  margin-top: 10px;
+}
+
+/* striped variant */
+.table.striped tbody tr:nth-child(odd) {
+  background-color: var(--overlay-background-color);
+}
+
+/* bordered variant */
+.table.bordered table th, .table.bordered table td {
+  border: 1px solid;
+}
+
+/* nobordered variant */
+.table.nobordered table th, .table.nobordered table td, .table.nobordered table thead tr, .table.nobordered table tbody tr {
+  border: none;
+  vertical-align: baseline;
+}
+
+/* industry variant */
+.table.industry {
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  line-height: 9.2pt;
+}
+
+.table.industry table th, .table.industry table td {
+  vertical-align: baseline;
+  padding: 3px;
+}
+
+.table.industry table td {
+  line-height: 1.6rem;
+}
+
+.table.industry td p {
+  line-height: 9.2pt;
+  min-height: 13px;
+}
+
+.table.industry tbody tr:nth-child(even) p {
+  min-height: 69px;
+  color: #333;
+}
+
+.table.industry thead tr, .table.industry tbody tr {
+  border: none;
+  border-bottom: #e8e8e8 1pt solid;
+}
+
+.table.industry tbody tr:nth-child(odd) {
+  background-color: var(--overlay-background-color);
+}
+
+/* revenue variant */
+.table.revenue {
+  width: 414px;
+  font-family: var(--header-font-family-regular);
+  font-size: var(--body-font-size-xs);
+  line-height: 1.6rem;
+}
+
+.table.revenue table thead tr {
+  border-top: none;
+}
+
+.table.revenue table tr td {
+  padding: 2px;
+  vertical-align: baseline;
+}
+
+.table.revenue table td:nth-child(1) {
+  width: 73px;
+}
+
+.table.revenue table td:nth-child(2) {
+  width: 147px;
+}
+
+.table.revenue table td:nth-child(3) {
+  width: 67px;
+}
+
+.table.revenue table td:nth-child(4) {
+  width: 109px;
+}
+
+.table.revenue table tr.empty td {
+  min-height: 35px;
+  display: block;
+  box-sizing: border-box;
+}
+
+.table.revenue table tr td:not(:first-child) {
+  text-align: center;
+}
+
+.table.revenue table tr td:nth-child(even) {
+  background: #9CF;
+  font-size: 15px;
+}
+
+.table.revenue table tr:not(.empty) td[colspan='4'] {
+  background-color: #ccc;
+}
