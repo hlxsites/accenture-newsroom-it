@@ -30,4 +30,8 @@
     flex: 1;
     order: unset;
   }
+
+  .columns.pr-contact > div {
+    align-items: baseline;
+  }
 }
