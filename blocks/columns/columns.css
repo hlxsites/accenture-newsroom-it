@@ -7,6 +7,10 @@
   width: 100%;
 }
 
+.columns.pr-contact img {
+  width: unset;
+}
+
 .columns > div > div {
   order: 1;
 }
