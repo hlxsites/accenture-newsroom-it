@@ -51,6 +51,22 @@ function getHumanReadableDate(dateString) {
 }
 
 /**
+ * Removes the heading and list elements from the given element
+ *
+ * @param {*} element
+ */
+function cleanDescription(element) {
+  const elementsToRemove = ['h1', 'h2', 'h3', 'h6', 'ul'];
+  elementsToRemove.forEach((e) => {
+    const el = element.querySelector(e);
+    if (el) {
+      el.remove();
+    }
+  });
+  return element.innerHTML;
+}
+
+/**
  * In the longdescrptionextracted field, iterate over all the child nodes and
  * check if the content matches with the regex, then return it as description.
  * Oterwise return the description field.
@@ -68,10 +84,18 @@ function getDescription(queryIndexEntry) {
     oBr.remove();
   }
   let longdescription = matchingParagraph ? matchingParagraph.outerHTML : '';
+  if (longdescription === '') {
+    // obtain the description with out regex matching
+    longdescription = cleanDescription(div);
+  }
   if (queryIndexEntry.description.length > longdescription.length) {
     longdescription = `<p>${queryIndexEntry.description}</p>`;
   } else if (longdescription.length > MAX_CHARS_IN_CARD_DESCRIPTION) {
-    longdescription = `<p>${matchingParagraph.innerHTML.substring(0, MAX_CHARS_IN_CARD_DESCRIPTION)}...</p>`;
+    if (matchingParagraph) {
+      longdescription = `<p>${matchingParagraph.innerHTML.substring(0, MAX_CHARS_IN_CARD_DESCRIPTION)}...</p>`;
+    } else {
+      longdescription = `<p>${longdescription.substring(0, MAX_CHARS_IN_CARD_DESCRIPTION)}...</p>`;
+    }
   }
   const wrapper = document.createElement('div');
   wrapper.innerHTML = longdescription;
@@ -490,7 +514,7 @@ export default async function decorate(block) {
           <span class="newslist-filter-arrow"></span>
         </label>
         <input type="text" id="newslist-filter-input" title="${pDateRange}" name="date" value="" size="40" placeholder="${pDateRange}" maxlength="60" disabled>
-        <input type="submit" value="" disabled>
+        <input type="submit" value="" aria-label="calendar" disabled>
       </form>
     `;
     newsListHeader.querySelector('#filter-form').append(filterYear);
@@ -525,7 +549,7 @@ export default async function decorate(block) {
           <span class="newslist-filter-arrow"></span>
         </label>
         <input type="text" id="newslist-filter-input" title="${pDateRange}" name="date" value="" placeholder="${pDateRange}" size="40" maxlength="60" disabled>
-        <input type="submit" value="" disabled>
+        <input type="submit" value="" aria-label="calendar" disabled>
       </form>
     `;
     const searchSubmitAction = newsListHeader.querySelector('#newslist-search-form input[type="submit"]');
@@ -560,9 +584,9 @@ export default async function decorate(block) {
       itemHtml = `
         <div class="newslist-item">
           <div class="newslist-item-title">
-            <h4>
+            <h3>
               <a href="${e.path}" title="${e.title}">${e.title}</a>
-            </h4>
+            </h3>
           </div>
           <div class="newslist-item-description">
             ${getDescription(e)}
