@@ -808,6 +808,21 @@ async function loadLazy(doc) {
   const sk = document.querySelector('helix-sidekick');
   if (sk) {
     sk.addEventListener('custom:preflight', preflightListener);
+    const publishButtons = sk.shadowRoot.querySelectorAll('button[title="Publish"]');
+    publishButtons.forEach((publishButton) => {
+      // eslint-disable-next-line func-names, consistent-return
+      publishButton.addEventListener('mousedown', function (e) {
+        // eslint-disable-next-line no-restricted-globals, no-alert
+        if (confirm('Are you sure you want to publish this content live?')) {
+          // continue publishing
+          this.click();
+        } else {
+          // avoid publishing
+          e.stopImmediatePropagation();
+          return false;
+        }
+      });
+    });
   }
 
   sampleRUM('lazy');
