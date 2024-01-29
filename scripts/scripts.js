@@ -7,6 +7,7 @@ import {
   ANALYTICS_LINK_TYPE_CONTENT_MODULE,
   ANALYTICS_MODULE_YEAR_FILTER,
   ANALYTICS_LINK_TYPE_FILTER,
+  INVALID_TAG_ERROR,
 } from './constants.js';
 import ffetch from './ffetch.js';
 import {
@@ -804,6 +805,42 @@ const preflightListener = async () => {
   customModal.showModal();
 };
 
+const hasInvalidTags = () => {
+  const oAsideComponent = document.querySelector('.aside-container');
+  let bHasInvalidTags = false;
+  if (!oAsideComponent) {
+    return false;
+  }
+  const oIndustry = oAsideComponent.querySelector('.tags .industry');
+  const oSubject = oAsideComponent.querySelector('.tags .subject');
+  const aAllTagsText = [];
+  if (oIndustry) {
+    const oIndustryTags = oIndustry.querySelectorAll('.industry-tag a');
+    oIndustryTags.forEach((oLink) => aAllTagsText.push(oLink.innerText));
+  }
+  if (oSubject) {
+    const oSubjectTags = oSubject.querySelectorAll('.subject-tag a');
+    oSubjectTags.forEach((oLink) => aAllTagsText.push(oLink.innerText));
+  }
+
+  aAllTagsText.forEach((sTags) => {
+    if (sTags.includes(INVALID_TAG_ERROR)) {
+      bHasInvalidTags = true;
+    }
+  });
+  return bHasInvalidTags;
+};
+
+const getContentDate = () => {
+  const sPublishDate = document.querySelector('meta[name=publisheddate]').content || '';
+  const oDateObject = new Date(sPublishDate);
+  if (oDateObject.toDateString() === 'Invalid Date') {
+    return 'Invalid Date';
+  }
+  const extractedDate = sPublishDate.split(' ')[0];
+  return extractedDate;
+};
+
 // Set event for the publish button for confirmation message
 const publishConfirmationPopUp = (oPublishButtons) => {
   const oSidekick = document.querySelector('helix-sidekick');
@@ -814,14 +851,19 @@ const publishConfirmationPopUp = (oPublishButtons) => {
   oPublishButtons.forEach((oPublishBtn) => {
     // eslint-disable-next-line func-names, consistent-return
     oPublishBtn.addEventListener('mousedown', function (e) {
+      if (hasInvalidTags()) {
+        // eslint-disable-next-line no-alert
+        alert(`Publishing Error: Unable to publish page. Invalid tags detected. Please review and correct the tags before attempting to publish again.\nContent Date is ${getContentDate()}\n`);
+        e.stopImmediatePropagation();
+        return;
+      }
       // eslint-disable-next-line no-restricted-globals, no-alert
-      if (confirm('Are you sure you want to publish this content live?')) {
+      if (confirm(` Are you sure you want to publish this content live?\n Content Date is ${getContentDate()}`)) {
         // continue publishing
         this.click();
       } else {
         // avoid publishing
         e.stopImmediatePropagation();
-        return false;
       }
     });
   });
@@ -879,6 +921,7 @@ const helixSideKickObserver = () => {
  * @param {Element} doc The container element
  */
 async function loadLazy(doc) {
+  helixSideKickObserver();
   await setCSP();
   const main = doc.querySelector('main');
   await loadBlocks(main);
@@ -894,7 +937,6 @@ async function loadLazy(doc) {
   loadFonts();
 
   centerArticleDivider(main);
-  helixSideKickObserver();
 
   sampleRUM('lazy');
   sampleRUM.observe(main.querySelectorAll('div[data-block-name]'));
