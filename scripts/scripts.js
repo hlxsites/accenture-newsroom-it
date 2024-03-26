@@ -704,6 +704,21 @@ export async function loadjQueryScript() {
   });
 }
 
+export const validateInputDate = (sDate) => {
+  const oCurrentDate = new Date();
+  const oInputDate = new Date(sDate);
+  const oCurrentDateHrs = oCurrentDate.setHours(0, 0, 0, 0);
+  const oInpuntToDateHrs = oInputDate.setHours(0, 0, 0, 0);
+
+  if (oCurrentDateHrs < oInpuntToDateHrs) {
+    const options = { month: 'numeric', day: 'numeric', year: 'numeric' };
+    const sFormattedCurrentDate = oCurrentDate.toLocaleDateString('en-US', options);
+    return sFormattedCurrentDate;
+  }
+
+  return sDate;
+};
+
 async function loadJQueryDateRangePicker() {
   const filterInput = document.querySelector('#newslist-filter-input');
   if (!filterInput) {
@@ -739,8 +754,10 @@ async function loadJQueryDateRangePicker() {
         const fullDtFrm = `${(obj.date1.getMonth() + 1)}/${obj.date1.getDate()}/${obj.date1.getFullYear()}`;
         const fullDtTo = `${(obj.date2.getMonth() + 1)}/${obj.date2.getDate()}/${obj.date2.getFullYear()}`;
         usp = new URLSearchParams();
-        usp.set('from_date', fullDtFrm);
-        usp.set('to_date', fullDtTo);
+        const sFormattedDtFrm = validateInputDate(fullDtFrm);
+        const sFormattedDtTo = validateInputDate(fullDtTo);
+        usp.set('from_date', sFormattedDtFrm);
+        usp.set('to_date', sFormattedDtTo);
         const closestForm = $filter.closest('form');
         const formUrl = closestForm.length > 0 ? closestForm.attr('action') : window.location.pathname;
         window.location.href = `${formUrl}?${usp.toString()}`;
@@ -768,8 +785,8 @@ async function loadJQueryDateRangePicker() {
   }
   const datePicker = document.querySelector('.date-picker-wrapper');
   datePicker.classList.add('date-picker-wrapper-custom');
-  const paramDateFrom = usp.get('from_date');
-  const paramDateTo = usp.get('to_date');
+  const paramDateFrom = validateInputDate(usp.get('from_date'));
+  const paramDateTo = validateInputDate(usp.get('to_date'));
   if (paramDateFrom && paramDateTo) {
     // eslint-disable-next-line no-undef
     $('#newslist-filter-input').data('dateRangePicker')
@@ -777,6 +794,14 @@ async function loadJQueryDateRangePicker() {
       .setStart(moment(paramDateFrom.toString()).format('MM/DD/YY'))
       // eslint-disable-next-line no-undef
       .setEnd(moment(paramDateTo.toString()).format('MM/DD/YY'));
+
+    if (usp.get('from_date') !== paramDateFrom || usp.get('to_date') !== paramDateTo) {
+      const oUSP = new URL(window.location);
+      oUSP.searchParams.set('from_date', paramDateFrom);
+      oUSP.searchParams.set('to_date', paramDateTo);
+      // eslint-disable-next-line no-restricted-globals
+      history.pushState({}, '', oUSP.href);
+    }
   }
 
   function displayDatePicker(e) {
@@ -906,6 +931,88 @@ const publishConfirmationHandler = (oSidekick) => {
   observer.observe(oShadowRoot, config);
 };
 
+let bSchedPubInProgress = false;
+async function publishLaterListener(ev) {
+  // eslint-disable-next-line import/no-cycle
+  const { publishLater } = await import('../tools/sidekick/authoring.js');
+  if (bSchedPubInProgress) {
+    // Sched still in progress
+    return;
+  }
+
+  bSchedPubInProgress = true;
+  try {
+    await publishLater(ev.detail.data);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.log(error);
+    bSchedPubInProgress = false;
+  } finally {
+    bSchedPubInProgress = false;
+  }
+}
+
+async function publishLaterAllListener(ev) {
+  // eslint-disable-next-line import/no-cycle
+  const { publishLaterList } = await import('../tools/sidekick/authoring.js');
+  if (bSchedPubInProgress) {
+    // Sched still in progress
+    return;
+  }
+
+  bSchedPubInProgress = true;
+  try {
+    await publishLaterList(ev.detail.data);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.log(error);
+    bSchedPubInProgress = false;
+  } finally {
+    bSchedPubInProgress = false;
+  }
+}
+
+async function pageInfoEnhancer() {
+  // eslint-disable-next-line import/no-cycle
+  const { enhancePageInfo } = await import('../tools/sidekick/authoring.js');
+  enhancePageInfo();
+}
+
+// Observe Plugin Info icon
+const observePluginInfo = (oSidekick) => {
+  if (!oSidekick) {
+    return;
+  }
+  const oShadowRoot = oSidekick.shadowRoot;
+  if (!oShadowRoot) {
+    return;
+  }
+
+  const infoObserver = new MutationObserver((mutations) => {
+    if (!mutations.pop().target.classList.contains('dropdown-expanded')) {
+      return;
+    }
+    pageInfoEnhancer();
+  });
+
+  // Options for the observer (which mutations to observe)
+  const config = { childList: true, subtree: true };
+  // Callback function to execute when mutations are observed
+  const callback = (_mutationList, observer) => {
+    const oPuglinInfo = oSidekick.shadowRoot.querySelector('.plugin.info');
+    if (oPuglinInfo) {
+      infoObserver.observe(oSidekick.shadowRoot.querySelector('.plugin.info'), { attributes: true, attributeFilter: ['class'] });
+      observer.disconnect();
+    }
+  };
+
+  // Create an observer instance linked to the callback function
+  const observer = new MutationObserver(callback);
+
+  // Start observing the target node for configured mutations
+  observer.observe(oShadowRoot, config);
+};
+
 // Observe helix-sidekick element if already loaded on the html body
 const helixSideKickObserver = () => {
   // const oSidekick = document.querySelector('helix-sidekick');
@@ -913,12 +1020,18 @@ const helixSideKickObserver = () => {
   if (sk) {
     // sidekick already loaded
     sk.addEventListener('custom:preflight', preflightListener);
+    sk.addEventListener('custom:publishlater', publishLaterListener);
+    sk.addEventListener('custom:publishlater-all', publishLaterAllListener);
+    observePluginInfo(sk);
     publishConfirmationHandler(sk);
   } else {
     // wait for sidekick to be loaded
     document.addEventListener('sidekick-ready', () => {
       const oAddedSidekick = document.querySelector('helix-sidekick');
       oAddedSidekick.addEventListener('custom:preflight', preflightListener);
+      oAddedSidekick.addEventListener('custom:publishlater', publishLaterListener);
+      oAddedSidekick.addEventListener('custom:publishlater-all', publishLaterAllListener);
+      observePluginInfo(oAddedSidekick);
       publishConfirmationHandler(oAddedSidekick);
     }, { once: true });
   }
